@@ -106,7 +106,7 @@ export default abstract class Operator {
     protected kubeConfig: k8s.KubeConfig;
     protected k8sApi: k8s.CoreV1Api;
 
-    private logger: OperatorLogger;
+    protected logger: OperatorLogger;
     private resourcePathBuilders: Record<string, (meta: ResourceMeta) => string> = {};
     private watchRequests: Record<string, { abort(): void }> = {};
     private eventQueue: Async.QueueObject<{
@@ -186,7 +186,7 @@ export default abstract class Operator {
      * @param plural The plural name of the custom resource
      * @param namespace Optional namespace to include in the uri
      */
-    protected getCustomResourceApiUri(group: string, version: string, plural: string, namespace?: string): string {
+    public getCustomResourceApiUri(group: string, version: string, plural: string, namespace?: string): string {
         let path = group ? `/apis/${group}/${version}/` : `/api/${version}/`;
         if (namespace) {
             path += `namespaces/${namespace}/`;
@@ -203,7 +203,7 @@ export default abstract class Operator {
      * @param onEvent The async callback for added, modified or deleted events on the resource
      * @param namespace The namespace of the resource (optional)
      */
-    protected async watchResource(
+    public async watchResource(
         group: string,
         version: string,
         plural: string,
@@ -266,7 +266,7 @@ export default abstract class Operator {
      * @param meta The resource to update
      * @param status The status body to set
      */
-    protected async setResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
+    public async setResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
         return await this.resourceStatusRequest('PUT', meta, status);
     }
 
@@ -275,7 +275,7 @@ export default abstract class Operator {
      * @param meta The resource to update
      * @param status The status body to set in JSON Merge Patch format (https://tools.ietf.org/html/rfc7386)
      */
-    protected async patchResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
+    public async patchResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
         return await this.resourceStatusRequest('PATCH', meta, status);
     }
 
@@ -289,7 +289,7 @@ export default abstract class Operator {
      * @param deleteAction An async action that will be called before your resource is deleted.
      * @returns True if no further action is needed, false if you still need to process the added or modified event yourself.
      */
-    protected async handleResourceFinalizer(
+    public async handleResourceFinalizer(
         event: ResourceEvent,
         finalizer: string,
         deleteAction: (event: ResourceEvent) => Promise<void>
@@ -323,7 +323,7 @@ export default abstract class Operator {
      * @param meta The resource to update
      * @param finalizers The array of finalizers for this resource
      */
-    protected async setResourceFinalizers(meta: ResourceMeta, finalizers: string[]): Promise<void> {
+    public async setResourceFinalizers(meta: ResourceMeta, finalizers: string[]): Promise<void> {
         const request: AxiosRequestConfig = {
             method: 'PATCH',
             url: `${this.resourcePathBuilders[meta.id](meta)}/${meta.name}`,
