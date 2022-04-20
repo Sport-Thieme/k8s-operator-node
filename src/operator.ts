@@ -54,7 +54,7 @@ export enum ResourceEventType {
  */
 export interface ResourceEvent<
     Spec extends Record<string, unknown> | unknown = unknown,
-    Status extends string | Record<string, unknown> | unknown = unknown
+    Status extends string | Record<string, unknown> | undefined | unknown = unknown
 > {
     meta: ResourceMeta;
     type: ResourceEventType;
