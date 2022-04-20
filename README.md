@@ -14,7 +14,7 @@ using the `@kubernetes/client-node` library.
 ## Installation
 
 ```console
-npm install @dot-i/k8s-operator
+npm install @sport-thieme/k8s-operator
 ```
 
 ## Basic usage
@@ -46,8 +46,7 @@ const exit = (reason: string) => {
     process.exit(0);
 };
 
-process.on('SIGTERM', () => exit('SIGTERM'))
-    .on('SIGINT', () => exit('SIGINT'));
+process.on('SIGTERM', () => exit('SIGTERM')).on('SIGINT', () => exit('SIGINT'));
 ```
 
 ### Operator methods
@@ -73,7 +72,7 @@ protected abstract async init(): Promise<void>
 
 Implement this method on your own operator class to initialize one or more resource watches. Call `watchResource()` on as many resources as you need.
 
-*NOTE:* if you need to initialize other things, place your watches at the end of the `init()` method to avoid running the risk of accessing uninitialized dependencies.
+_NOTE:_ if you need to initialize other things, place your watches at the end of the `init()` method to avoid running the risk of accessing uninitialized dependencies.
 
 #### watchResource
 
@@ -89,10 +88,10 @@ The `onEvent` callback will be called for each resource event that comes in from
 A resource event is defined as follows:
 
 ```javascript
-interface ResourceEvent {
+interface ResourceEvent<Spec extends {} | undefined = undefined> {
     meta: ResourceMeta;
     type: ResourceEventType;
-    object: any;
+    object: KubernetesObject & { spec?: Spec };
 }
 
 interface ResourceMeta {
@@ -148,7 +147,7 @@ If this method returns `true` the event is fully handled, if it returns `false` 
 protected async setResourceFinalizers(meta: ResourceMeta, finalizers: string[]): Promise<void>
 ```
 
-Set the finalizers on the **Kubernetes** resource defined by `meta`.  Typically you will not use this method, but use `handleResourceFinalizer` to handle the complete delete logic.
+Set the finalizers on the **Kubernetes** resource defined by `meta`. Typically you will not use this method, but use `handleResourceFinalizer` to handle the complete delete logic.
 
 #### registerCustomResourceDefinition
 

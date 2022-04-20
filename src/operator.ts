@@ -52,10 +52,10 @@ export enum ResourceEventType {
 /**
  * An event on a Kubernetes resource.
  */
-export interface ResourceEvent {
+export interface ResourceEvent<Spec extends Record<string, unknown> | undefined = undefined> {
     meta: ResourceMeta;
     type: ResourceEventType;
-    object: KubernetesObject;
+    object: KubernetesObject & { spec?: Spec };
 }
 
 /**
