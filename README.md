@@ -88,10 +88,16 @@ The `onEvent` callback will be called for each resource event that comes in from
 A resource event is defined as follows:
 
 ```javascript
-interface ResourceEvent<Spec extends {} | undefined = undefined> {
+export interface ResourceEvent<
+    Spec extends Record<string, unknown> | unknown = unknown,
+    Status extends string | Record<string, unknown> | undefined | unknown = unknown
+> {
     meta: ResourceMeta;
     type: ResourceEventType;
-    object: KubernetesObject & { spec?: Spec };
+    object: KubernetesObject & {
+        status: Status;
+        spec: Spec;
+    };
 }
 
 interface ResourceMeta {
