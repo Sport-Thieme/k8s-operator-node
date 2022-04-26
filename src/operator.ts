@@ -1,7 +1,8 @@
-import * as Async from 'async';
 import * as FS from 'fs';
-import * as k8s from '@kubernetes/client-node';
 import * as https from 'https';
+import * as Async from 'async';
+import getDebugLogger, { Debugger } from 'debug';
+import * as k8s from '@kubernetes/client-node';
 import Axios, { AxiosRequestConfig, Method as HttpMethod } from 'axios';
 import {
     KubernetesObject,
@@ -112,6 +113,7 @@ export default abstract class Operator {
     protected kubeConfig: k8s.KubeConfig;
     protected k8sApi: k8s.CoreV1Api;
 
+    protected debugger: Debugger;
     protected logger: OperatorLogger;
     private resourcePathBuilders: Record<string, (meta: ResourceMeta) => string> = {};
     private watchRequests: Record<string, { abort(): void }> = {};
@@ -127,6 +129,7 @@ export default abstract class Operator {
         this.kubeConfig = new k8s.KubeConfig();
         this.kubeConfig.loadFromDefault();
         this.k8sApi = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+        this.debugger = getDebugLogger('operator');
         this.logger = logger || new NullLogger();
 
         // Use an async queue to make sure we treat each incoming event sequentially using async/await
@@ -140,10 +143,12 @@ export default abstract class Operator {
      * Run the operator, typically called from main().
      */
     public async start(): Promise<void> {
+        this.debugger('Starting...');
         await this.init();
     }
 
     public stop(): void {
+        this.debugger('Stopping...');
         for (const req of Object.values(this.watchRequests)) {
             req.abort();
         }
@@ -273,6 +278,7 @@ export default abstract class Operator {
      * @param status The status body to set
      */
     public async setResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
+        this.debugger(`Setting status of ${meta.namespace ?? 'default'}/${meta.name}...`);
         return await this.resourceStatusRequest('PUT', meta, status);
     }
 
@@ -282,6 +288,7 @@ export default abstract class Operator {
      * @param status The status body to set in JSON Merge Patch format (https://tools.ietf.org/html/rfc7386)
      */
     public async patchResourceStatus(meta: ResourceMeta, status: unknown): Promise<ResourceMeta | null> {
+        this.debugger(`Patching status of ${meta.namespace ?? 'default'}/${meta.name}...`);
         return await this.resourceStatusRequest('PATCH', meta, status);
     }
 
@@ -300,8 +307,10 @@ export default abstract class Operator {
         finalizer: string,
         deleteAction: (event: ResourceEvent) => Promise<void>
     ): Promise<boolean> {
+        this.debugger(`Handling finalizer ${finalizer} for ${event.meta.namespace ?? 'default'}/${event.meta.name}...`);
         const metadata = event.object.metadata;
         if (!metadata || (event.type !== ResourceEventType.Added && event.type !== ResourceEventType.Modified)) {
+            this.debugger(`No metadata found in ${event.type} event, or event is not an added or modified.`);
             return false;
         }
         if (!metadata.deletionTimestamp && (!metadata.finalizers || !metadata.finalizers.includes(finalizer))) {
@@ -330,6 +339,7 @@ export default abstract class Operator {
      * @param finalizers The array of finalizers for this resource
      */
     public async setResourceFinalizers(meta: ResourceMeta, finalizers: string[]): Promise<void> {
+        this.debugger(`Setting finalizers of ${meta.namespace ?? 'default'}/${meta.name}...`);
         const request: AxiosRequestConfig = {
             method: 'PATCH',
             url: `${this.resourcePathBuilders[meta.id](meta)}/${meta.name}`,

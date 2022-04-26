@@ -197,14 +197,9 @@ export default class MyOperator extends Operator {
 
 ### Operator that watches a custom resource
 
-You will typicall create an interface to define your custom resource:
+You will typically create an interface to define your custom resource:
 
 ```javascript
-export interface MyCustomResource extends KubernetesObject {
-    spec: MyCustomResourceSpec;
-    status: MyCustomResourceStatus;
-}
-
 export interface MyCustomResourceSpec {
     foo: string;
     bar?: number;
@@ -213,6 +208,8 @@ export interface MyCustomResourceSpec {
 export interface MyCustomResourceStatus {
     observedGeneration?: number;
 }
+
+export type MyCustomResource = ResourceEvent<MyCustomResourceSpec, MyCustomResourceStatus>;
 ```
 
 Your operator can then watch your resource like this:
