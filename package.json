@@ -1,6 +1,6 @@
 {
     "name": "@sport-thieme/k8s-operator",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "description": "Build Kubernetes operators in NodeJS (and TypeScript)",
     "author": {
         "name": "Nico Francois",
