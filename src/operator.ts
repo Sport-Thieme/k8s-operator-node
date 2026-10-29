@@ -12,6 +12,9 @@ import {
     Watch,
 } from '@kubernetes/client-node';
 
+const MAX_WATCH_FAILURES = 10;
+const MAX_WATCH_RETRY_DELAY_MS = 30000;
+
 /**
  * Logger interface.
  */
@@ -237,13 +240,28 @@ export default abstract class Operator {
         uri += plural;
 
         const watch = new Watch(this.kubeConfig);
+        let failures = 0;
+
+        // Transient API errors (e.g. 429 "storage is (re)initializing") are retried with backoff;
+        // only give up after MAX_WATCH_FAILURES consecutive failures.
+        const retryWatch = (reason: unknown): void => {
+            failures++;
+            if (failures > MAX_WATCH_FAILURES) {
+                this.logger.error(`watch on resource ${id} failed ${failures} times, giving up: ${this.errorToJson(reason)}`);
+                process.exit(1);
+            }
+            const delay = Math.min(1000 * 2 ** (failures - 1), MAX_WATCH_RETRY_DELAY_MS);
+            this.logger.warn(`watch on resource ${id} failed, retrying in ${delay}ms: ${this.errorToJson(reason)}`);
+            setTimeout(startWatch, delay);
+        };
 
         const startWatch = (): Promise<void> =>
             watch
                 .watch(
                     uri,
                     {},
-                    (phase, obj) =>
+                    (phase, obj) => {
+                        failures = 0;
                         this.eventQueue.push({
                             event: {
                                 meta: ResourceMetaImpl.createWithPlural(plural, obj),
@@ -251,21 +269,21 @@ export default abstract class Operator {
                                 type: phase as ResourceEventType,
                             },
                             onEvent,
-                        }),
+                        });
+                    },
                     (err) => {
                         if (err) {
-                            this.logger.error(`watch on resource ${id} failed: ${this.errorToJson(err)}`);
-                            process.exit(1);
+                            return retryWatch(err);
                         }
+                        failures = 0;
                         this.logger.debug(`restarting watch on resource ${id}`);
                         setTimeout(startWatch, 200);
                     }
                 )
-                .catch((reason) => {
-                    this.logger.error(`watch on resource ${id} failed: ${this.errorToJson(reason)}`);
-                    process.exit(1);
+                .then((req) => {
+                    this.watchRequests[id] = req;
                 })
-                .then((req) => (this.watchRequests[id] = req));
+                .catch(retryWatch);
 
         await startWatch();
 

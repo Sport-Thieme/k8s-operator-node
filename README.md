@@ -85,6 +85,8 @@ Start watching a **Kubernetes** resource. Pass in the resource's group, version 
 
 The `onEvent` callback will be called for each resource event that comes in from the **Kubernetes** API.
 
+If the watch fails (e.g. the API server answers `429 storage is (re)initializing`), it is retried with exponential backoff (1s up to 30s). The process only exits after 10 consecutive failures.
+
 A resource event is defined as follows:
 
 ```javascript

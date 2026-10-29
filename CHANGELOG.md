@@ -1,5 +1,9 @@
 # CHANGELOG
 
+### 1.3.4 (2026-10-29)
+
+- retry failed watches with exponential backoff instead of exiting the process
+
 ### 1.2.3 (2022-02-15)
 
 - upgrade dependencies
