@@ -243,7 +243,7 @@ export default abstract class Operator {
         let failures = 0;
 
         // Transient API errors (e.g. 429 "storage is (re)initializing") are retried with backoff;
-        // only give up after MAX_WATCH_FAILURES consecutive failures.
+        // only give up once MAX_WATCH_FAILURES retries in a row have failed.
         const retryWatch = (reason: unknown): void => {
             failures++;
             if (failures > MAX_WATCH_FAILURES) {
